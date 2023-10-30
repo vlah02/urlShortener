@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <style>
+        body {
+            user-select: none;
+        }
+        .form-container {
+            position: relative;
+            user-select: auto;
+            z-index: 10;
+        }
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        body, #darkModeToggle, .main-container, #mainTitle, #urlInput, .text-sm, #shortenedURL, #copyButton, #darkModeIcon, #fps {
+            transition: all 0.2s ease;
+        }
+
+    </style>
+</head>
+
+<body class="bg-gray-100 transition-all">
+    <div id="particles-js"></div>
+    <div class="form-container min-h-screen flex items-center justify-center relative">
+        <button id="darkModeToggle" class="absolute top-4 right-4 bg-gray-100 bg-opacity-80 w-20 h-20 rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 flex items-center justify-center">
+            <i id="darkModeIcon" class="fas fa-moon" style="font-size: 2rem;"></i>
+        </button>
+        <div id="fps" class="absolute bottom-4 right-4 bg-gray-100 bg-opacity-80 w-60 h-28 rounded-lg shadow-lg flex flex-col items-center justify-center text-center">
+            <div class="fps-content">0 FPS</div>
+            <div class="particle-count-content">0 Particles</div>
+        </div>
+        <div class="main-container p-8 bg-white bg-opacity-80 rounded-xl shadow-md space-y-8 mx-auto">
+            <h1 id="mainTitle" class="text-4xl font-bold text-center">URL Shortener</h1>
+            <form method="POST">
+                <div class="relative rounded-md shadow-sm">
+                    <input type="url" id="urlInput" name="url" class="block w-full pl-4 pr-10 sm:text-sm rounded-md bg-transparent text-white" placeholder="Enter your URL" required>
+                </div>
+                <div class="mt-4">
+                    <button type="submit" id="shortenButton" class="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Shorten</button>
+                </div>
+            </form>
+            {% if shortened_url %}
+            <div class="mt-4" id="shortenedUrlContainer">
+                <p id="shortenedText" class="text-sm mb-2">Shortened URL:</p>
+                <div class="flex items-center">
+                    <input id="shortenedURL" type="text" readonly value="{{ shortened_url }}" class="flex-grow px-3 py-2 bg-gray-100 rounded-md mr-2">
+                    <button id="copyButton" class="text-blue-500 hover:text-blue-600 p-2 bg-gray-200 rounded flex-shrink-0">
+                        <i class="fas fa-copy fa-lg"></i>
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        const MAX_PARTICLES = 500;
+        const PARTICLE_NUMBER = 150;
+        function initParticles(color, particleCount) {
+            particlesJS("particles-js", {
+                "particles": {
+                    "size": {
+                        "value": 3,
+                        "random": true,
+                        "anim": {
+                            "enable": false,
+                            "speed": 40,
+                            "size_min": 0.1,
+                            "sync": false
+                        }
+                    },
+                    "number": {
+                        "value": particleCount,
+                        "density": {
+                            "enable": true,
+                            "value_area": 800
+                        }
+                    },
+                    "color": {
+                        "value": color
+                    },
+                    "line_linked": {
+                        "enable": true,
+                        "distance": 150,
+                        "color": color,
+                        "opacity": 0.4,
+                        "width": 1
+                    },
+                    "move": {
+                        "enable": true,
+                        "speed": 1,
+                        "direction": "none",
+                        "random": false,
+                        "straight": false,
+                        "out_mode": "out",
+                        "bounce": false,
+                        "attract": {
+                            "enable": false,
+                            "rotateX": 600,
+                            "rotateY": 1200
+                        }
+                    }
+                },
+                "interactivity": {
+                    "detect_on": "window",
+                    "events": {
+                        "onhover": {
+                            "enable": true,
+                            "mode": "grab"
+                        },
+                        "onclick": {
+                            "enable": true,
+                            "mode": "push"
+                        },
+                        "resize": true
+                    },
+                    "modes": {
+                        "grab": {
+                            "distance": 150,
+                            "line_linked": {
+                                "opacity": 1
+                            }
+                        },
+                        "bubble": {
+                            "distance": 400,
+                            "size": 40,
+                            "duration": 2,
+                            "opacity": 8,
+                            "speed": 3
+                        },
+                        "repulse": {
+                            "distance": 200,
+                            "duration": 0.4
+                        },
+                        "push": {
+                            "particles_nb": 1
+                        },
+                        "remove": {
+                            "particles_nb": 10
+                        }
+                    }
+                },
+                "retina_detect": true
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const darkModeIcon = document.getElementById('darkModeIcon');
+            const mainTitle = document.getElementById('mainTitle');
+            const urlInput = document.getElementById('urlInput');
+            const copyButton = document.getElementById('copyButton');
+            const fpsCounter = document.getElementById('fps');
+            let shortenedText = document.getElementById('shortenedText');
+            let shortenedURL = document.getElementById('shortenedURL');
+            let isDarkMode = localStorage.getItem('darkMode') === 'true';
+
+            function manageParticles() {
+                const pJS = window.pJSDom[0].pJS;
+                while (pJS.particles.array.length > MAX_PARTICLES) {
+                    pJS.particles.array.pop();
+                }
+            }
+
+            toggleDarkMode(isDarkMode);
+            initParticles(isDarkMode ? '#ffffff' : '#000000', PARTICLE_NUMBER);
+
+            function loop() {
+                manageParticles();
+                requestAnimationFrame(loop);
+            }
+            requestAnimationFrame(loop);
+
+            function transitionColor(from, to, step = 0.1) {
+                const fromRGB = hexToRGB(from);
+                const toRGB = hexToRGB(to);
+                const currentRGB = {
+                    r: fromRGB.r + step * (toRGB.r - fromRGB.r),
+                    g: fromRGB.g + step * (toRGB.g - fromRGB.g),
+                    b: fromRGB.b + step * (toRGB.b - fromRGB.b),
+                };
+                return rgbToHex(currentRGB);
+            }
+
+            function hexToRGB(hex) {
+                const bigint = parseInt(hex.slice(1), 16);
+                const r = (bigint >> 16) & 255;
+                const g = (bigint >> 8) & 255;
+                const b = bigint & 255;
+                return { r, g, b };
+            }
+
+            function rgbToHex(rgb) {
+                return '#' + (1 << 24 | rgb.r << 16 | rgb.g << 8 | rgb.b).toString(16).slice(1).toUpperCase();
+            }
+
+
+            function toggleDarkMode(isDark) {
+                const body = document.body;
+                const isDarkClass = isDark ? 'bg-gray-800' : 'bg-gray-100';
+
+                body.classList.remove(isDark ? 'bg-gray-100' : 'bg-gray-800');
+                body.classList.add(isDarkClass);
+
+                darkModeToggle.style.backgroundColor = isDark ? 'rgba(243, 244, 246, 0.8)' : 'rgba(27, 31, 35, 0.8)';
+                //initParticles(isDark ? '#ffffff' : '#000000', PARTICLE_NUMBER);
+
+                const container = body.querySelector(".p-8");
+                container.classList.remove(isDark ? 'bg-white' : 'bg-gray-900');
+                container.classList.add(isDark ? 'bg-gray-900' : 'bg-white');
+
+                mainTitle.classList.remove(isDark ? 'text-black' : 'text-white');
+                mainTitle.classList.add(isDark ? 'text-white' : 'text-black');
+
+                urlInput.classList.remove(isDark ? 'bg-transparent' : 'bg-gray-900');
+                urlInput.classList.add(isDark ? 'bg-gray-900' : 'bg-transparent');
+                urlInput.style.color = isDark ? 'white' : 'black';
+
+                if (shortenedText) {
+                    shortenedText.classList.remove(isDark ? 'text-black' : 'text-white');
+                    shortenedText.classList.add(isDark ? 'text-white' : 'text-black');
+                }
+                if (shortenedURL) {
+                    shortenedURL.style.backgroundColor = isDark ? "#1b1f23" : "#f3f4f6";
+                    shortenedURL.style.color = isDark ? "white" : "black";
+                }
+                if (copyButton) {
+                    copyButton.style.backgroundColor = isDark ? "#1b1f23" : "#f3f4f6";
+                    copyButton.style.color = isDark ? "white" : "black";
+                }
+
+                darkModeIcon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+                darkModeIcon.style.color = isDark ? 'yellow' : 'white';
+
+                fpsCounter.style.backgroundColor = isDark ? 'rgba(243, 244, 246, 0.8)' : 'rgba(27, 31, 35, 0.8)';
+                fpsCounter.style.color = isDark ? '#1b1f23' : '#f3f4f6';
+
+                const particleColor = isDark ? '#ffffff' : '#000000';
+                if (window.pJSDom && window.pJSDom.length > 0 && window.pJSDom[0].pJS) {
+                    const pJS = window.pJSDom[0].pJS;
+                    pJS.particles.color.value = particleColor;
+                    pJS.particles.line_linked.color = particleColor;
+                    pJS.fn.particlesRefresh();
+                }
+            }
+
+            function copyToClipboard() {
+                const copyText = document.getElementById('shortenedURL');
+                copyText.select();
+                document.execCommand('copy');
+            }
+
+            let frameCount = 0;
+            let lastTime = performance.now();
+            let fpsDisplay = document.querySelector('.fps-content');
+            let lastFPS = 0;
+            function updateFPS() {
+                const now = performance.now();
+                const delta = now - lastTime;
+                const fpsRate = (frameCount * 1000) / delta;
+                const roundedFPS = Math.round(fpsRate);
+
+                if (Math.abs(lastFPS - roundedFPS) > 2) {
+                    fpsDisplay.textContent = `${roundedFPS} FPS`;
+                    lastFPS = roundedFPS;
+                }
+
+                frameCount = 0;
+                lastTime = now;
+            }
+
+            function updateParticleCount() {
+                if (window.pJSDom && window.pJSDom.length > 0 && window.pJSDom[0].pJS) {
+                    const particleCountElem = document.querySelector('.particle-count-content');
+                    particleCountElem.textContent = `${window.pJSDom[0].pJS.particles.array.length} Particles`;
+                }
+            }
+
+            setInterval(updateFPS, 250);
+            setInterval(updateParticleCount, 100);
+
+            function frameCounter() {
+                frameCount++;
+                requestAnimationFrame(frameCounter);
+            }
+
+            requestAnimationFrame(frameCounter);
+
+            darkModeToggle.addEventListener('click', () => {
+                isDarkMode = !isDarkMode;
+                localStorage.setItem('darkMode', isDarkMode);
+                toggleDarkMode(isDarkMode);
+            });
+
+            copyButton.addEventListener('click', copyToClipboard);
+        });
+    </script>
+
+</body>
+
+</html>
